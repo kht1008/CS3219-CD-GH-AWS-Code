@@ -2,7 +2,8 @@ name: CD Pipeline
 
 on:
   push:
-    branches: [ master ]  # change to main if needed
+    branches:
+      - master   # stays master since your default is master
 
 jobs:
   deploy:
@@ -18,6 +19,10 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
 
+      # Optional but nice: ensure a clean lockfile for prod
+      - name: Install (prod) dependencies locally
+        run: npm ci --omit=dev
+
       - name: Generate deployment package
         run: |
           zip -r address-book-app.zip \
@@ -32,8 +37,10 @@ jobs:
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # If your AWS user is temporary (STS), also add:
+          # aws_session_token: ${{ secrets.AWS_SESSION_TOKEN }}
+          application_name: AddressBookApp     # EXACTLY as in EB “Application name”
+          environment_name: AddressBookAppp-env  # EXACTLY as in EB “Environment name”
+          version_label: v-${{ env.VERSION }}-${{ github.run_number }}
           region: ap-southeast-1
-          application_name: ${{ secrets.EB_APP_NAME }}      # <- set exact value in repo secrets
-          environment_name: ${{ secrets.EB_ENV_NAME }}      # <- set exact value in repo secrets
-          version_label: v-${{ env.VERSION }}
           deployment_package: address-book-app.zip
